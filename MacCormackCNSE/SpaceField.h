@@ -43,6 +43,9 @@ public:
 	inline floatType Getdx() const { return cdx; }
 	inline floatType Getdy() const { return cdy; }
 
+	inline vectorType& operator()(size_t i, size_t j) { return cData[i + (j*cNX)]; }
+	inline vectorType& operator()(size_t ii) { return cData[ii]; }
+
 	inline vectorType operator()(size_t i, size_t j) const { return cData[i + (j*cNX)]; }
 	inline vectorType operator()(size_t ii) const { return cData[ii]; }
 
@@ -52,16 +55,25 @@ public:
 	inline vectorType SetValue(size_t i, size_t j, const vectorType& value) { return (cData[i + (j*cNX)] = value); }
 	inline vectorType SetValue(size_t ii, const vectorType& value) { return (cData[ii] = value); }
 	
-	inline vectorType FowardXDifferenciation(size_t i, size_t j) const { return (cData[i + 1 + (j*cNX)] - cData[i + (j*cNX)])/cdx; };
-	inline vectorType BackwardXDifferenciation(size_t i, size_t j) const { return (cData[i + (j*cNX)] - cData[i - 1 + (j*cNX)]) / cdx; };
+	inline vectorType ForwardXDifferentiation(size_t i, size_t j) const { return (cData[i + 1 + (j*cNX)] - cData[i + (j*cNX)])/cdx; };
+	inline vectorType BackwardXDifferentiation(size_t i, size_t j) const { return (cData[i + (j*cNX)] - cData[i - 1 + (j*cNX)]) / cdx; };
 
-	inline vectorType FowardYDifferenciation(size_t i, size_t j) const { return (cData[i + ((j+1)*cNX)] - cData[i + (j*cNX)]) / cdy; };
-	inline vectorType BackwardYDifferenciation(size_t i, size_t j) const { return (cData[i + (j*cNX)] - cData[i + ((j - 1)*cNX)]) / cdy; };
+	inline vectorType ForwardYDifferentiation(size_t i, size_t j) const { return (cData[i + ((j+1)*cNX)] - cData[i + (j*cNX)]) / cdy; };
+	inline vectorType BackwardYDifferentiation(size_t i, size_t j) const { return (cData[i + (j*cNX)] - cData[i + ((j - 1)*cNX)]) / cdy; };
 
 	inline vectorType CentralXDifferentiation(size_t i, size_t j) const { return (cData[i + 1 + (j*cNX)] - cData[i - 1 + (j*cNX)]) / cdx; }
 	inline vectorType CentralYDifferentiation(size_t i, size_t j) const { return (cData[i + ((j + 1 )*cNX)] - cData[i + ((j - 1 )*cNX)]) / cdy; }
 
-	inline void ForwardXDifferention(SpaceField<vectorType, floatType>& outSpaceField) const
+	inline vectorType ForwardXDifferentiation(size_t ii) const { return (cData[ii + 1] - cData[ii]) / cdx; };
+	inline vectorType BackwardXDifferentiation(size_t ii) const { return (cData[ii] - cData[ii - 1]) / cdx; };
+
+	inline vectorType ForwardYDifferentiation(size_t ii) const { return (cData[ii + 1*cNX] - cData[ii]) / cdy; };
+	inline vectorType BackwardYDifferentiation(size_t ii) const { return (cData[ii] - cData[ii - 1*cNX]) / cdy; };
+
+	inline vectorType CentralXDifferentiation(size_t ii) const { return (cData[ii + 1] - cData[ii - 1]) / cdx; }
+	inline vectorType CentralYDifferentiation(size_t ii) const { return (cData[ii + 1*cNX] - cData[ii - 1*cNX]) / cdy; }
+
+	inline void ForwardXDifferentiation(SpaceField<vectorType, floatType>& outSpaceField) const
 	{
 #ifdef _DEBUG
 		if (outSpaceField.GetNN() != cData.size())
@@ -74,12 +86,12 @@ public:
 		{
 			for (size_t i = 1; i < cNX - 1; i++)
 			{
-				outSpaceField.SetValue(i, j, ForwardXDifferention(i, j));
+				outSpaceField.SetValue(i, j, ForwardXDifferentiation(i, j));
 			}
 		}
 	}
 
-	inline void BackwardXDifferention(SpaceField<vectorType, floatType>& outSpaceField) const
+	inline void BackwardXDifferentiation(SpaceField<vectorType, floatType>& outSpaceField) const
 	{
 #ifdef _DEBUG
 		if (outSpaceField.GetNN() != cData.size())
@@ -92,12 +104,12 @@ public:
 		{
 			for (size_t i = 1; i < cNX - 1; i++)
 			{
-				outSpaceField.SetValue(i, j, BackwardXDifferention(i, j));
+				outSpaceField.SetValue(i, j, BackwardXDifferentiation(i, j));
 			}
 		}
 	}
 
-	inline void ForwardYDifferention(SpaceField<vectorType, floatType>& outSpaceField) const
+	inline void ForwardYDifferentiation(SpaceField<vectorType, floatType>& outSpaceField) const
 	{
 #ifdef _DEBUG
 		if (outSpaceField.GetNN() != cData.size())
@@ -110,12 +122,12 @@ public:
 		{
 			for (size_t i = 1; i < cNX - 1; i++)
 			{
-				outSpaceField.SetValue(i, j, ForwardYDifferention(i, j));
+				outSpaceField.SetValue(i, j, ForwardYDifferentiation(i, j));
 			}
 		}
 	}
 
-	inline void BackwardYDifferention(SpaceField<vectorType, floatType>& outSpaceField) const
+	inline void BackwardYDifferentiation(SpaceField<vectorType, floatType>& outSpaceField) const
 	{
 #ifdef _DEBUG
 		if (outSpaceField.GetNN() != cData.size())
@@ -128,7 +140,7 @@ public:
 		{
 			for (size_t i = 1; i < cNX - 1; i++)
 			{
-				outSpaceField.SetValue(i, j, BackwardYDifferention(i, j));
+				outSpaceField.SetValue(i, j, BackwardYDifferentiation(i, j));
 			}
 		}
 	}
@@ -252,6 +264,17 @@ public:
 
 		return res;
 	}
+
+	inline SpaceField operator-() const
+	{
+		SpaceField res = *this;
+		for (size_t ii = 0; ii < cData.size(); ii++)
+		{
+			res.cData[ii] = -res.cData[ii];
+		}
+
+		return res;
+	}
 			
 	inline SpaceField& operator+=(const SpaceField<vectorType, floatType>& rhs)
 	{
@@ -313,6 +336,70 @@ public:
 		return *this;
 	}
 
+	inline SpaceField operator+(const SpaceField<vectorType, floatType>& rhs)const
+	{
+		SpaceField<vectorType, floatType> res = *this;
+#ifdef _DEBUG
+		if (rhs.GetNN() != cData.size())
+		{
+			throw "Campos de tamanhos diferentes!";
+		}
+#endif
+		for (size_t ii = 0; ii < cData.size(); ii++)
+		{
+			res.cData[ii] = cData[ii] + rhs(ii);
+		}
+		return *this;
+	}
+
+	inline SpaceField operator-(const SpaceField<vectorType, floatType>& rhs)const
+	{
+		SpaceField<vectorType, floatType> res = *this;
+#ifdef _DEBUG
+		if (rhs.GetNN() != cData.size())
+		{
+			throw "Campos de tamanhos diferentes!";
+		}
+#endif
+		for (size_t ii = 0; ii < cData.size(); ii++)
+		{
+			res.cData[ii] = cData[ii] - rhs(ii);
+		}
+		return *this;
+	}
+
+	inline SpaceField operator*(const SpaceField<vectorType, floatType>& rhs)const
+	{
+		SpaceField<vectorType, floatType> res = *this;
+#ifdef _DEBUG
+		if (rhs.GetNN() != cData.size())
+		{
+			throw "Campos de tamanhos diferentes!";
+		}
+#endif
+		for (size_t ii = 0; ii < cData.size(); ii++)
+		{
+			res.cData[ii] = cData[ii] * rhs(ii);
+		}
+		return *this;
+	}
+
+	inline SpaceField operator/(const SpaceField<vectorType, floatType>& rhs)const
+	{
+		SpaceField<vectorType, floatType> res = *this;
+#ifdef _DEBUG
+		if (rhs.GetNN() != cData.size())
+		{
+			throw "Campos de tamanhos diferentes!";
+		}
+#endif
+		for (size_t ii = 0; ii < cData.size(); ii++)
+		{
+			res.cData[ii] = cData[ii] / rhs(ii);
+		}
+		return *this;
+	}
+
 	inline SpaceField& operator()(const std::function<vectorType(vectorType)>& function)
 	{
 		for (size_t ii = 0; ii < cData.size(); ii++)
@@ -333,29 +420,21 @@ public:
 		return res;
 	}
 
-	inline SpaceField& operator=(SpaceField&& spaceField)
+	
+	inline SpaceField& operator=(const SpaceField& spaceField)
 	{
-		cNX= spaceField.GetNX();
+#ifdef _DEBUG
 
-		cNY= spaceField.GetNY();
+		if (cNX != spaceField.GetNX() || cNY != spaceField.GetNY() ||
+			cdx != spaceField.Getdx() || cdy != spaceField.Getdy())
+		{
+			throw "Campos de tamanhos diferentes!";
+		}
+#endif
 
-		cdx= spaceField.Getdx();
+		cData = spaceField.cData;
 
-		cdy= spaceField.Getdy();
-
-		cData(std::move(spaceField.cData));
-	}
-	inline SpaceField& operator=(const SpaceField& spaceField) const
-	{
-		cNX = spaceField.GetNX();
-
-		cNY = spaceField.GetNY();
-
-		cdx = spaceField.Getdx();
-
-		cdy = spaceField.Getdy();
-
-		cData(spaceField.cData);
+		return *this;
 	}
 
 private:

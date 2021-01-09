@@ -129,6 +129,18 @@ public:
 		return *this;
 	}
 
+	inline FixedColumnVector operator-() const
+	{
+		FixedColumnVector res(*this);
+
+		for (size_t i = 0; i < cNColumns; i++)
+		{
+			res.cValues[i] = -res.cValues[i];
+		}
+
+		return res;
+	}
+
 	inline FixedColumnVector operator+(const FixedColumnVector& rhs) const
 	{
 		FixedColumnVector res(*this);
