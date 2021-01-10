@@ -58,20 +58,20 @@ public:
 	inline vectorType ForwardXDifferentiation(size_t i, size_t j) const { return (cData[i + 1 + (j*cNX)] - cData[i + (j*cNX)])/cdx; };
 	inline vectorType BackwardXDifferentiation(size_t i, size_t j) const { return (cData[i + (j*cNX)] - cData[i - 1 + (j*cNX)]) / cdx; };
 
-	inline vectorType ForwardYDifferentiation(size_t i, size_t j) const { return (cData[i + ((j+1)*cNX)] - cData[i + (j*cNX)]) / cdy; };
-	inline vectorType BackwardYDifferentiation(size_t i, size_t j) const { return (cData[i + (j*cNX)] - cData[i + ((j - 1)*cNX)]) / cdy; };
+	inline vectorType ForwardYDifferentiation(size_t i, size_t j) const { return (cData[i + ((j-1)*cNX)] - cData[i + (j*cNX)]) / cdy; };
+	inline vectorType BackwardYDifferentiation(size_t i, size_t j) const { return (cData[i + (j*cNX)] - cData[i + ((j + 1)*cNX)]) / cdy; };
 
 	inline vectorType CentralXDifferentiation(size_t i, size_t j) const { return (cData[i + 1 + (j*cNX)] - cData[i - 1 + (j*cNX)]) / cdx; }
-	inline vectorType CentralYDifferentiation(size_t i, size_t j) const { return (cData[i + ((j + 1 )*cNX)] - cData[i + ((j - 1 )*cNX)]) / cdy; }
+	inline vectorType CentralYDifferentiation(size_t i, size_t j) const { return (cData[i + ((j - 1 )*cNX)] - cData[i + ((j + 1 )*cNX)]) / cdy; }
 
 	inline vectorType ForwardXDifferentiation(size_t ii) const { return (cData[ii + 1] - cData[ii]) / cdx; };
 	inline vectorType BackwardXDifferentiation(size_t ii) const { return (cData[ii] - cData[ii - 1]) / cdx; };
 
-	inline vectorType ForwardYDifferentiation(size_t ii) const { return (cData[ii + 1*cNX] - cData[ii]) / cdy; };
-	inline vectorType BackwardYDifferentiation(size_t ii) const { return (cData[ii] - cData[ii - 1*cNX]) / cdy; };
+	inline vectorType ForwardYDifferentiation(size_t ii) const { return (cData[ii - 1*cNX] - cData[ii]) / cdy; };
+	inline vectorType BackwardYDifferentiation(size_t ii) const { return (cData[ii] - cData[ii + 1*cNX]) / cdy; };
 
 	inline vectorType CentralXDifferentiation(size_t ii) const { return (cData[ii + 1] - cData[ii - 1]) / cdx; }
-	inline vectorType CentralYDifferentiation(size_t ii) const { return (cData[ii + 1*cNX] - cData[ii - 1*cNX]) / cdy; }
+	inline vectorType CentralYDifferentiation(size_t ii) const { return (cData[ii - 1*cNX] - cData[ii + 1*cNX]) / cdy; }
 
 	inline void ForwardXDifferentiation(SpaceField<vectorType, floatType>& outSpaceField) const
 	{

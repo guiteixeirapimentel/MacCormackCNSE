@@ -1,4 +1,6 @@
 #include <iostream>
+#include <fstream>
+#include <string>
 
 #include "SpaceField.h"
 #include "FixedColumnVector.h"
@@ -17,15 +19,17 @@ int main()
 	constexpr precisao KfudgeFactor = static_cast<precisao>(0.5); // pagina 457 livro anderson
 
 	// valores da malha
-	constexpr size_t NX = 20;
-	constexpr size_t NY = 20;
+	constexpr size_t NX = 5;
+	constexpr size_t NY = 5;
 	constexpr size_t NN = NX * NY;
 
-	constexpr precisao dx = static_cast<precisao>(0.01);
-	constexpr precisao dy = static_cast<precisao>(0.01);
+	constexpr precisao dx = static_cast<precisao>(1.43e-7);//0.0000209);
+	constexpr precisao dy = static_cast<precisao>(1.43e-7);//0.0000209);
+
+	constexpr precisao L = dx * NX;
 
 	// cond. contorno
-	constexpr precisao u0 = static_cast<precisao>(1.0);
+	constexpr precisao u0 = static_cast<precisao>(340.28*4.0);//(1.0);
 	constexpr precisao v0 = static_cast<precisao>(0.0);
 	
 	// valores padrao
@@ -45,6 +49,10 @@ int main()
 	constexpr precisao beta = static_cast<precisao>(0.0);
 
 	constexpr precisao lambda0 = static_cast<precisao>(beta - precisao(2.0 / 3.0)*beta);
+
+	// valores globais escoamento
+
+	constexpr precisao Re0 = rho0 * u0*L / mu0;
 	
 	// definicao de funcoes lambda
 
@@ -88,6 +96,11 @@ int main()
 	auto vlinhaCFL = [&](precisao mu, precisao rho)
 	{
 		return static_cast<precisao>(4.0 / 3.0)*(gama*mu / Pr) / rho;
+	};
+
+	auto velSom = [&](precisao T)
+	{
+		return sqrt(R*gama*T);
 	};
 
 	SpaceFieldScalar un(NX, NY, dx, dy, u0);
@@ -135,7 +148,70 @@ int main()
 	SpaceFieldVector bufV2(NX, NY, dx, dy);
 
 	precisao t = static_cast<precisao>(0);
+
+	auto garanteCondsContorno = [&](SpaceFieldScalar& u, SpaceFieldScalar& v, 
+		SpaceFieldScalar& p, SpaceFieldScalar& T)
+	{
+		// Case 1
+		u(0, (NY - 1)) = static_cast<precisao>(0);
+		v(0, (NY - 1)) = static_cast<precisao>(0);
+		p(0, (NY - 1)) = static_cast<precisao>(P0);
+		T(0, (NY - 1)) = static_cast<precisao>(T0);
+
+		// Case 2
+		for (size_t j = 0; j < NY-1; j++)
+		{
+			u(0, j) = static_cast<precisao>(u0);
+			v(0, j) = static_cast<precisao>(0);
+			p(0, j) = static_cast<precisao>(P0);
+			T(0, j) = static_cast<precisao>(T0);
+		}
+		for (size_t i = 0; i < NX; i++)
+		{
+			u(i, 0) = static_cast<precisao>(u0);
+			v(i, 0) = static_cast<precisao>(0);
+			p(i, 0) = static_cast<precisao>(P0);
+			T(i, 0) = static_cast<precisao>(T0);
+		}
+
+		// Case 3
+		for (size_t i = 1; i < NX; i++)
+		{
+			u(i, NY-1) = static_cast<precisao>(0);
+			v(i, NY-1) = static_cast<precisao>(0);
+			p(i, NY-1) = static_cast<precisao>(2) * p(i, NY-2) - p(i, NY - 3);
+			T(i, NY-1) = static_cast<precisao>(T0);
+		}
+
+		// Case 4
+		for (size_t j = 1; j < NY - 1; j++)
+		{
+			u(NX - 1, j) = static_cast<precisao>(2) * u(NX-2, j) - u(NX-3, j);
+			v(NX - 1, j) = static_cast<precisao>(2) * v(NX - 2, j) - v(NX - 3, j);
+			p(NX - 1, j) = static_cast<precisao>(2) * p(NX - 2, j) - p(NX - 3, j);
+			T(NX - 1, j) = static_cast<precisao>(2) * T(NX - 2, j) - T(NX - 3, j);
+		}
+	};
+
+	auto saveToCSV = [](const SpaceFieldScalar& field, const std::string& nome)
+	{
+		std::ofstream arq(nome);
+
+		for (size_t j = 0; j < field.GetNY(); j++)
+		{
+			for (size_t i = 0; i < field.GetNX(); i++)
+			{
+				arq << field(i, j) << ';';
+			}
+
+			arq << '\n';
+		}
+
+		arq.close();
+	};
 	
+	garanteCondsContorno(un, vn, Pn, Tn);
+
 	while (t < tmax)
 	{
 		/// MACCORMACK
@@ -156,8 +232,9 @@ int main()
 			dtmin = std::fmin(dtmin, deltatCFL(un(ii), vn(ii), an(ii), vlinhamax));
 		}
 
-		std::cout << dtmin << std::endl;
-		
+		dtmin *= 100.0f;
+
+		std::cout << dtmin << std::endl;		
 
 		// Calcula valores do campo de vetores (U, E, F, etc) (como passo predizido, calcula as
 		// derivadas lembrando da regra de trocar direçao no caso de mesma derivada espacial
@@ -189,6 +266,8 @@ int main()
 		{
 			tauxyn(ii) = mun(ii)*(buf1(ii) + buf2(ii));
 		}
+
+		saveToCSV(tauxyn, "tauxy.csv");
 
 		for (size_t ii = 0; ii < NN; ii++)
 		{				
@@ -235,15 +314,121 @@ int main()
 		dUdt1 = -bufV1 - bufV2;
 			   
 		// Avançar U no tempo utilizando esses dU/dt
-
 		Unp = Un + dUdt1 * dtmin;
 
+		for (size_t ii = 0; ii < NN; ii++)
+		{
+			rhon(ii) = Unp(ii).cValues[0];
+			un(ii) = Unp(ii).cValues[1] / Unp(ii).cValues[0];
+			vn(ii) = Unp(ii).cValues[2] / Unp(ii).cValues[0];
+			Etn(ii) = Unp(ii).cValues[3];
+
+			Tn(ii) = Etn(ii) / rhon(ii) - (un(ii)*un(ii) + vn(ii)*vn(ii)) / static_cast<precisao>(2.0);
+			Pn(ii) = rhon(ii)*R * Tn(ii);
+			mun(ii) = visc(Tn(ii));
+			kn(ii) = condTermica(mun(ii));
+			lambdan(ii) = segVisc(mun(ii));
+		}
+
+		garanteCondsContorno(un, vn, Pn, Tn);
+
+		// Calcula valores do campo de vetores (U, E, F, etc) (como passo corrigido, calcula as
+		// derivadas lembrando da regra de trocar direçao no caso de mesma derivada espacial
+		// e usar derivada central no caso de diferente
+
+		un.ForwardXDifferentiation(buf1);
+		vn.CentralYDifferentiation(buf2);
+		Tn.ForwardXDifferentiation(buf3);
+
+		for (size_t ii = 0; ii < NN; ii++)
+		{
+			tauxxn(ii) = lambdan(ii)*(buf1(ii) + buf2(ii)) + static_cast<precisao>(2) * mun(ii)*buf1(ii);
+			qxn(ii) = -kn(ii) * buf3(ii);
+		}
+
+		un.CentralYDifferentiation(buf1);
+		vn.ForwardXDifferentiation(buf2);
+
+		for (size_t ii = 0; ii < NN; ii++)
+		{
+			tauxyn(ii) = mun(ii)*(buf1(ii) + buf2(ii));
+		}
+
+		for (size_t ii = 0; ii < NN; ii++)
+		{
+			E(ii).cValues[0] = rhon(ii)*un(ii);
+			E(ii).cValues[1] = rhon(ii)*un(ii)*un(ii) + Pn(ii) - tauxxn(ii);
+			E(ii).cValues[2] = rhon(ii)*un(ii)*vn(ii) - tauxyn(ii);
+			E(ii).cValues[3] = (Etn(ii) + Pn(ii)) * un(ii) - un(ii)*tauxxn(ii) - vn(ii)*tauxyn(ii) + qxn(ii);
+		}
+
+		un.CentralXDifferentiation(buf1);
+		vn.ForwardYDifferentiation(buf2);
+		Tn.ForwardYDifferentiation(buf3);
+
+		for (size_t ii = 0; ii < NN; ii++)
+		{
+			tauyyn(ii) = lambdan(ii)*(buf1(ii) + buf2(ii)) + static_cast<precisao>(2) * mun(ii)*buf2(ii);
+			qyn(ii) = -kn(ii) * buf3(ii);
+		}
+
+		un.ForwardYDifferentiation(buf1);
+		vn.CentralXDifferentiation(buf2);
+
+		for (size_t ii = 0; ii < NN; ii++)
+		{
+			tauxyn(ii) = mun(ii)*(buf1(ii) + buf2(ii));
+		}
+
+		for (size_t ii = 0; ii < NN; ii++)
+		{
+			F(ii).cValues[0] = rhon(ii)*vn(ii);
+			F(ii).cValues[1] = rhon(ii)*un(ii)*vn(ii) - tauxyn(ii);
+			F(ii).cValues[2] = rhon(ii)*vn(ii)*vn(ii) + Pn(ii) - tauyyn(ii);
+			F(ii).cValues[3] = (Etn(ii) + Pn(ii)) * vn(ii) - un(ii)*tauxyn(ii) - vn(ii)*tauyyn(ii) + qyn(ii);
+		}
+
 		// Calcular dU/dt² novamento utilizando os valores predizidos de U
+
+		E.BackwardXDifferentiation(bufV1);
+		F.BackwardYDifferentiation(bufV2);
+
+		dUdt2 = -bufV1 - bufV2;		
 
 		// Calcular o valor de U final como o avanço "médio" no tempo
 		// Unp = Un + 1/2 * (dU/dt¹ + dU/dt²)
 
+		Unp = Un + (dUdt1 + dUdt2) * dtmin*static_cast<precisao>(0.5);
 
+		for (size_t ii = 0; ii < NN; ii++)
+		{
+			rhon(ii) = Unp(ii).cValues[0];
+			un(ii) = Unp(ii).cValues[1] / Unp(ii).cValues[0];
+			vn(ii) = Unp(ii).cValues[2] / Unp(ii).cValues[0];
+			Etn(ii) = Unp(ii).cValues[3];
+
+			Tn(ii) = Etn(ii) / rhon(ii) - (un(ii)*un(ii) + vn(ii)*vn(ii)) / static_cast<precisao>(2.0);
+			Pn(ii) = rhon(ii)*R * Tn(ii);
+			mun(ii) = visc(Tn(ii));
+			kn(ii) = condTermica(mun(ii));
+			lambdan(ii) = segVisc(mun(ii));
+
+			an(ii) = velSom(Tn(ii));
+		}
+
+		Un = Unp;
+
+		garanteCondsContorno(un, vn, Pn, Tn);
+		t += dtmin;
+
+		// salva to .csv
+
+		saveToCSV(un, "data/un" + std::to_string(t) + ".csv");
+		saveToCSV(vn, "data/vn" + std::to_string(t) + ".csv");
+		saveToCSV(Tn, "data/Pn" + std::to_string(t) + ".csv");
+		saveToCSV(Pn, "data/Tn" + std::to_string(t) + ".csv");
+
+		std::cout << t << std::endl;
 	}
 
 	return 0;
