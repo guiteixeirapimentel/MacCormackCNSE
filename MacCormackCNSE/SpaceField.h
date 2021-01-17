@@ -58,20 +58,20 @@ public:
 	inline vectorType ForwardXDifferentiation(size_t i, size_t j) const { return (cData[i + 1 + (j*cNX)] - cData[i + (j*cNX)])/cdx; };
 	inline vectorType BackwardXDifferentiation(size_t i, size_t j) const { return (cData[i + (j*cNX)] - cData[i - 1 + (j*cNX)]) / cdx; };
 
-	inline vectorType ForwardYDifferentiation(size_t i, size_t j) const { return (cData[i + ((j-1)*cNX)] - cData[i + (j*cNX)]) / cdy; };
-	inline vectorType BackwardYDifferentiation(size_t i, size_t j) const { return (cData[i + (j*cNX)] - cData[i + ((j + 1)*cNX)]) / cdy; };
+	inline vectorType ForwardYDifferentiation(size_t i, size_t j) const { return (cData[i + ((j+1)*cNX)] - cData[i + (j*cNX)]) / cdy; };
+	inline vectorType BackwardYDifferentiation(size_t i, size_t j) const { return (cData[i + (j*cNX)] - cData[i + ((j-1)*cNX)]) / cdy; };
 
 	inline vectorType CentralXDifferentiation(size_t i, size_t j) const { return (cData[i + 1 + (j*cNX)] - cData[i - 1 + (j*cNX)]) / cdx; }
-	inline vectorType CentralYDifferentiation(size_t i, size_t j) const { return (cData[i + ((j - 1 )*cNX)] - cData[i + ((j + 1 )*cNX)]) / cdy; }
+	inline vectorType CentralYDifferentiation(size_t i, size_t j) const { return (cData[i + ((j + 1 )*cNX)] - cData[i + ((j - 1 )*cNX)]) / cdy; }
 
 	inline vectorType ForwardXDifferentiation(size_t ii) const { return (cData[ii + 1] - cData[ii]) / cdx; };
 	inline vectorType BackwardXDifferentiation(size_t ii) const { return (cData[ii] - cData[ii - 1]) / cdx; };
 
-	inline vectorType ForwardYDifferentiation(size_t ii) const { return (cData[ii - 1*cNX] - cData[ii]) / cdy; };
-	inline vectorType BackwardYDifferentiation(size_t ii) const { return (cData[ii] - cData[ii + 1*cNX]) / cdy; };
+	inline vectorType ForwardYDifferentiation(size_t ii) const { return (cData[ii + 1*cNX] - cData[ii]) / cdy; };
+	inline vectorType BackwardYDifferentiation(size_t ii) const { return (cData[ii] - cData[ii - 1*cNX]) / cdy; };
 
 	inline vectorType CentralXDifferentiation(size_t ii) const { return (cData[ii + 1] - cData[ii - 1]) / cdx; }
-	inline vectorType CentralYDifferentiation(size_t ii) const { return (cData[ii - 1*cNX] - cData[ii + 1*cNX]) / cdy; }
+	inline vectorType CentralYDifferentiation(size_t ii) const { return (cData[ii + 1*cNX] - cData[ii - 1*cNX]) / cdy; }
 
 	inline void ForwardXDifferentiation(SpaceField<vectorType, floatType>& outSpaceField) const
 	{
@@ -82,7 +82,7 @@ public:
 		}
 #endif
 
-		for (size_t j = 1; j < cNY - 1; j++)
+		for (size_t j = 0; j < cNY; j++)
 		{
 			for (size_t i = 1; i < cNX - 1; i++)
 			{
@@ -100,7 +100,7 @@ public:
 		}
 #endif
 
-		for (size_t j = 1; j < cNY -1; j++)
+		for (size_t j = 0; j < cNY; j++)
 		{
 			for (size_t i = 1; i < cNX - 1; i++)
 			{
@@ -120,7 +120,7 @@ public:
 
 		for (size_t j = 1; j < cNY - 1; j++)
 		{
-			for (size_t i = 1; i < cNX - 1; i++)
+			for (size_t i = 0; i < cNX; i++)
 			{
 				outSpaceField.SetValue(i, j, ForwardYDifferentiation(i, j));
 			}
@@ -136,9 +136,9 @@ public:
 		}
 #endif
 
-		for (size_t j = 1; j < cNY - 1; j++)
+		for (size_t j = 1; j < cNY-1; j++)
 		{
-			for (size_t i = 1; i < cNX - 1; i++)
+			for (size_t i = 0; i < cNX; i++)
 			{
 				outSpaceField.SetValue(i, j, BackwardYDifferentiation(i, j));
 			}
@@ -154,7 +154,7 @@ public:
 		}
 #endif
 
-		for (size_t j = 1; j < cNY - 1; j++)
+		for (size_t j = 0; j < cNY; j++)
 		{
 			for (size_t i = 1; i < cNX - 1; i++)
 			{
@@ -174,7 +174,7 @@ public:
 
 		for (size_t j = 1; j < cNY - 1; j++)
 		{
-			for (size_t i = 1; i < cNX - 1; i++)
+			for (size_t i = 0; i < cNX; i++)
 			{
 				outSpaceField.SetValue(i, j, CentralYDifferentiation(i, j));
 			}
@@ -349,7 +349,7 @@ public:
 		{
 			res.cData[ii] = cData[ii] + rhs(ii);
 		}
-		return *this;
+		return res;
 	}
 
 	inline SpaceField operator-(const SpaceField<vectorType, floatType>& rhs)const
@@ -365,7 +365,7 @@ public:
 		{
 			res.cData[ii] = cData[ii] - rhs(ii);
 		}
-		return *this;
+		return res;
 	}
 
 	inline SpaceField operator*(const SpaceField<vectorType, floatType>& rhs)const
@@ -381,7 +381,7 @@ public:
 		{
 			res.cData[ii] = cData[ii] * rhs(ii);
 		}
-		return *this;
+		return res;
 	}
 
 	inline SpaceField operator/(const SpaceField<vectorType, floatType>& rhs)const
@@ -397,7 +397,7 @@ public:
 		{
 			res.cData[ii] = cData[ii] / rhs(ii);
 		}
-		return *this;
+		return res;
 	}
 
 	inline SpaceField& operator()(const std::function<vectorType(vectorType)>& function)

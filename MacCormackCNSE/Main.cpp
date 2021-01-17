@@ -19,12 +19,12 @@ int main()
 	constexpr precisao KfudgeFactor = static_cast<precisao>(0.5); // pagina 457 livro anderson
 
 	// valores da malha
-	constexpr size_t NX = 5;
-	constexpr size_t NY = 5;
+	constexpr size_t NX = 70;
+	constexpr size_t NY = 70;
 	constexpr size_t NN = NX * NY;
 
-	constexpr precisao dx = static_cast<precisao>(1.43e-7);//0.0000209);
-	constexpr precisao dy = static_cast<precisao>(1.43e-7);//0.0000209);
+	constexpr precisao dx = static_cast<precisao>(1.45e-7);//0.0000209);
+	constexpr precisao dy = static_cast<precisao>(1.19e-7);//0.0000209);
 
 	constexpr precisao L = dx * NX;
 
@@ -59,7 +59,11 @@ int main()
 	// sutherland law
 	auto visc = [&](precisao T)
 	{
-		return mu0 * pow(T / T0, static_cast<precisao>(1.5)) * (T0 + static_cast<precisao>(110.0)) / (T + static_cast<precisao>(110.0));
+		const precisao res = mu0 * pow(T / T0, static_cast<precisao>(1.5)) * (T0 + static_cast<precisao>(110.0)) / (T + static_cast<precisao>(110.0));
+		
+		assert(!isnan(res));
+
+		return res;
 	};
 
 	auto condTermica = [&](precisao visc)
@@ -232,9 +236,9 @@ int main()
 			dtmin = std::fmin(dtmin, deltatCFL(un(ii), vn(ii), an(ii), vlinhamax));
 		}
 
-		dtmin *= 100.0f;
-
-		std::cout << dtmin << std::endl;		
+		dtmin *= KfudgeFactor;
+		
+		std::cout << "Passo no tempo: " << dtmin << std::endl;		
 
 		// Calcula valores do campo de vetores (U, E, F, etc) (como passo predizido, calcula as
 		// derivadas lembrando da regra de trocar direçao no caso de mesma derivada espacial
@@ -323,7 +327,7 @@ int main()
 			vn(ii) = Unp(ii).cValues[2] / Unp(ii).cValues[0];
 			Etn(ii) = Unp(ii).cValues[3];
 
-			Tn(ii) = Etn(ii) / rhon(ii) - (un(ii)*un(ii) + vn(ii)*vn(ii)) / static_cast<precisao>(2.0);
+			Tn(ii) = (Etn(ii) / rhon(ii) - (un(ii)*un(ii) + vn(ii)*vn(ii)) / static_cast<precisao>(2.0))/Cv;
 			Pn(ii) = rhon(ii)*R * Tn(ii);
 			mun(ii) = visc(Tn(ii));
 			kn(ii) = condTermica(mun(ii));
@@ -407,7 +411,7 @@ int main()
 			vn(ii) = Unp(ii).cValues[2] / Unp(ii).cValues[0];
 			Etn(ii) = Unp(ii).cValues[3];
 
-			Tn(ii) = Etn(ii) / rhon(ii) - (un(ii)*un(ii) + vn(ii)*vn(ii)) / static_cast<precisao>(2.0);
+			Tn(ii) = (Etn(ii) / rhon(ii) - (un(ii)*un(ii) + vn(ii)*vn(ii)) / static_cast<precisao>(2.0))/Cv;
 			Pn(ii) = rhon(ii)*R * Tn(ii);
 			mun(ii) = visc(Tn(ii));
 			kn(ii) = condTermica(mun(ii));
@@ -423,12 +427,12 @@ int main()
 
 		// salva to .csv
 
-		saveToCSV(un, "data/un" + std::to_string(t) + ".csv");
-		saveToCSV(vn, "data/vn" + std::to_string(t) + ".csv");
-		saveToCSV(Tn, "data/Pn" + std::to_string(t) + ".csv");
-		saveToCSV(Pn, "data/Tn" + std::to_string(t) + ".csv");
+		saveToCSV(un, "data/un" + std::to_string(t*10e5) + ".csv");
+		saveToCSV(vn, "data/vn" + std::to_string(t*10e5) + ".csv");
+		saveToCSV(Tn, "data/Tn" + std::to_string(t*10e5) + ".csv");
+		saveToCSV(Pn, "data/Pn" + std::to_string(t*10e5) + ".csv");
 
-		std::cout << t << std::endl;
+		std::cout << "Tempo: " << t << std::endl;
 	}
 
 	return 0;
